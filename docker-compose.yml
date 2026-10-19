@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  # Redis Message Broker & Persistent Result Backend
+  redis:
+    image: redis:7-alpine
+    container_name: rivult_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --save 60 1
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - rivult_net
+
+  # FastAPI API Gateway & Task Dispatcher
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: rivult_api
+    ports:
+      - "8084:8084"
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - CELERY_TASK_ALWAYS_EAGER=false
+      - CELERY_WORKER_CONCURRENCY=4
+      - LOG_LEVEL=INFO
+      - LOG_JSON_FORMAT=true
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - rivult_net
+
+  # Celery Background Worker Pool
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: rivult_worker
+    command: celery -A app.celery_app.celery_app worker --loglevel=INFO --concurrency=4 -Q default,data_heavy,reports,media -E
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - CELERY_TASK_ALWAYS_EAGER=false
+      - CELERY_WORKER_CONCURRENCY=4
+      - LOG_LEVEL=INFO
+      - LOG_JSON_FORMAT=true
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - rivult_net
+
+  # Flower - Real-Time Celery Cluster Monitoring
+  flower:
+    image: mher/flower:latest
+    container_name: rivult_flower
+    ports:
+      - "5555:5555"
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - FLOWER_PORT=5555
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - rivult_net
+
+volumes:
+  redis_data:
+
+networks:
+  rivult_net:
+    driver: bridge

@@ -1,0 +1,57 @@
+services:
+  # FastAPI Web API Gateway
+  - type: web
+    name: rivult-api
+    env: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    region: oregon
+    healthCheckPath: /healthz
+    envVars:
+      - key: PORT
+        value: 8084
+      - key: CELERY_BROKER_URL
+        fromService:
+          type: redis
+          name: rivult-redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          type: redis
+          name: rivult-redis
+          property: connectionString
+      - key: CELERY_TASK_ALWAYS_EAGER
+        value: "false"
+      - key: LOG_LEVEL
+        value: INFO
+
+  # Celery Background Worker Service
+  - type: worker
+    name: rivult-celery-worker
+    env: docker
+    dockerfilePath: ./Dockerfile
+    dockerCommand: celery -A app.celery_app.celery_app worker --loglevel=INFO --concurrency=4 -Q default,data_heavy,reports,media
+    plan: free
+    region: oregon
+    envVars:
+      - key: CELERY_BROKER_URL
+        fromService:
+          type: redis
+          name: rivult-redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          type: redis
+          name: rivult-redis
+          property: connectionString
+      - key: CELERY_TASK_ALWAYS_EAGER
+        value: "false"
+      - key: LOG_LEVEL
+        value: INFO
+
+  # Redis Broker and Result Backend
+  - type: redis
+    name: rivult-redis
+    plan: free
+    region: oregon
+    ipAllowList: [] # internal only
