@@ -67,7 +67,8 @@ async def dispatch_aggregation_task(
     Asynchronously dispatches a heavy data aggregation job.
     Returns task ID immediately without waiting for execution.
     """
-    correlation_id = getattr(request.state, "correlation_id", "unknown")
+    correlation_id = getattr(request.state, 
+    "correlation_id", "unknown")
 
     async_result = heavy_data_aggregation.apply_async(
         args=[payload.model_dump()],
