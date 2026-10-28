@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
   <style>
     :root {
       --bg-dark: #07090e;
@@ -679,7 +680,7 @@
       <a href="#monitor" class="nav-link">Live Telemetry</a>
       <a href="#api-docs" class="nav-link">API Docs</a>
       <a href="#architecture" class="nav-link">Architecture</a>
-      <a href="/docs" target="_blank" class="nav-link">Swagger OpenAPI ↗</a>
+      <a href="/docs" target="_blank" class="nav-link">Swagger OpenAPI â†—</a>
       <div class="system-badge">
         <span class="pulse-dot"></span>
         <span id="system-status-text">Engine Online :8084</span>
@@ -1015,10 +1016,12 @@
       el.addEventListener('input', updatePayloadPreview);
     });
 
+    const API_BASE = window.location.protocol === 'file:' ? 'http://localhost:8084' : '';
+
     async function dispatchActiveTask(e) {
       e.preventDefault();
       const payload = getPayload();
-      const url = `/api/v1/tasks/${currentTaskType === 'media' ? 'image-pipeline' : currentTaskType}`;
+      const url = `${API_BASE}/api/v1/tasks/${currentTaskType === 'media' ? 'image-pipeline' : currentTaskType}`;
 
       try {
         const res = await fetch(url, {
@@ -1052,7 +1055,7 @@
 
       activePollInterval = setInterval(async () => {
         try {
-          const res = await fetch(`/api/v1/tasks/${taskId}`);
+          const res = await fetch(`${API_BASE}/api/v1/tasks/${taskId}`);
           if (!res.ok) return;
           const data = await res.json();
 
@@ -1088,7 +1091,7 @@
 
     async function fetchTasks() {
       try {
-        const res = await fetch('/api/v1/tasks');
+        const res = await fetch(`${API_BASE}/api/v1/tasks`);
         if (!res.ok) return;
         const tasks = await res.json();
         const list = document.getElementById('tasks-feed');
@@ -1110,7 +1113,7 @@
 
     async function fetchMetrics() {
       try {
-        const res = await fetch('/api/v1/metrics');
+        const res = await fetch(`${API_BASE}/api/v1/metrics`);
         if (!res.ok) return;
         const data = await res.json();
         document.getElementById('stat-dispatched').textContent = data.total_tasks_dispatched;
@@ -1136,3 +1139,4 @@
   </script>
 </body>
 </html>
+

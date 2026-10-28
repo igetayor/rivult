@@ -68,6 +68,13 @@ if web_dir.exists():
             return FileResponse(index_file)
         return HTMLResponse("<h1>Rivult Engine UI Loaded</h1>")
 
+    @app.get("/style.css", include_in_schema=False)
+    async def serve_style():
+        style_file = web_dir / "style.css"
+        if style_file.exists():
+            return FileResponse(style_file, media_type="text/css")
+        return HTMLResponse("", status_code=404)
+
 
 @app.get("/healthz", tags=["System"])
 async def health_check():
