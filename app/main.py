@@ -6,7 +6,7 @@ from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.api.middleware import CorrelationIdMiddleware
-from app.api.router import router as api_router
+from app.api.controllers.task_controller import router as task_router
 from app.config import get_settings
 from app.logger import logger
 
@@ -53,7 +53,7 @@ app.add_middleware(
 )
 
 # Mount API routes
-app.include_router(api_router)
+app.include_router(task_router)
 
 # Mount frontend web artifacts
 web_dir = Path(__file__).resolve().parent.parent / "web"
