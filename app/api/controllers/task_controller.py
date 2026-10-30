@@ -6,7 +6,7 @@ Zero Celery imports, zero task logic, zero registry manipulation here.
 """
 
 from typing import Any, Dict, List
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Request, status
 
 from app.schemas import (
     AggregationTaskRequest,
@@ -30,8 +30,9 @@ _svc = TaskService()
     status_code=status.HTTP_202_ACCEPTED,
     summary="Dispatch a heavy data aggregation task to Celery workers",
 )
-async def dispatch_aggregation(payload: AggregationTaskRequest) -> TaskDispatchResponse:
-    return _svc.dispatch_aggregation(payload)
+async def dispatch_aggregation(payload: AggregationTaskRequest, request: Request) -> TaskDispatchResponse:
+    correlation_id = getattr(request.state, "correlation_id", "unknown")
+    return _svc.dispatch_aggregation(payload, correlation_id=correlation_id)
 
 
 @router.post(
@@ -40,18 +41,27 @@ async def dispatch_aggregation(payload: AggregationTaskRequest) -> TaskDispatchR
     status_code=status.HTTP_202_ACCEPTED,
     summary="Dispatch an image transformation pipeline task",
 )
-async def dispatch_image_pipeline(payload: ImagePipelineRequest) -> TaskDispatchResponse:
-    return _svc.dispatch_image_pipeline(payload)
+async def dispatch_image_pipeline(payload: ImagePipelineRequest, request: Request) -> TaskDispatchResponse:
+    correlation_id = getattr(request.state, "correlation_id", "unknown")
+    return _svc.dispatch_image_pipeline(payload, correlation_id=correlation_id)
 
 
+@router.post(
+    "/tasks/report",
+    response_model=TaskDispatchResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Dispatch a batch report generation task",
+    include_in_schema=False,
+)
 @router.post(
     "/tasks/reports",
     response_model=TaskDispatchResponse,
     status_code=status.HTTP_202_ACCEPTED,
     summary="Dispatch a batch report generation task",
 )
-async def dispatch_reports(payload: ReportGenerationRequest) -> TaskDispatchResponse:
-    return _svc.dispatch_reports(payload)
+async def dispatch_reports(payload: ReportGenerationRequest, request: Request) -> TaskDispatchResponse:
+    correlation_id = getattr(request.state, "correlation_id", "unknown")
+    return _svc.dispatch_reports(payload, correlation_id=correlation_id)
 
 
 @router.get(
@@ -68,9 +78,14 @@ async def get_task_status(task_id: str) -> TaskStatusResponse:
     response_model=TaskRevokeResponse,
     summary="Revoke and terminate a running or pending task",
 )
+@router.post(
+    "/tasks/{task_id}/revoke",
+    response_model=TaskRevokeResponse,
+    summary="Revoke and terminate a running or pending task via POST",
+    include_in_schema=False,
+)
 async def revoke_task(task_id: str) -> TaskRevokeResponse:
-    _svc.revoke_task(task_id)
-    return TaskRevokeResponse(task_id=task_id, revoked=True)
+    return _svc.revoke_task(task_id)
 
 
 @router.get(
